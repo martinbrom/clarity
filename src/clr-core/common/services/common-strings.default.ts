@@ -64,6 +64,14 @@ export const commonStringsDefault: ClrCommonStrings = {
   daypickerSRCurrentMonthPhrase: 'The current month is {CURRENT_MONTH}',
   daypickerSRCurrentYearPhrase: 'The current year is {CURRENT_YEAR}',
   daypickerSRCurrentDecadePhrase: 'The current decade is {DECADE_RANGE}',
+  // Time Picker
+  timepickerToggle: 'Toggle datepicker',
+  timepickerPreviousHour: 'Previous hour',
+  timepickerCurrentHour: 'Current hour',
+  timepickerNextHour: 'Next hour',
+  timepickerPreviousMinute: 'Previous minute',
+  timepickerNextMinute: 'Next minute',
+  timepickerCurrentMinute: 'Current minute',
   // Stack View
   stackViewChanged: 'Value changed.',
   // Forms

@@ -193,6 +193,19 @@ export interface ClrCommonStrings {
   daypickerSRCurrentMonthPhrase: string;
   daypickerSRCurrentYearPhrase: string;
   daypickerSRCurrentDecadePhrase: string;
+
+  // TODO: Add AM/PM, and SR stuff
+  /**
+   * Timepicker UI labels
+   */
+  timepickerToggle: string;
+  timepickerPreviousHour: string;
+  timepickerCurrentHour: string;
+  timepickerNextHour: string;
+  timepickerPreviousMinute: string;
+  timepickerNextMinute: string;
+  timepickerCurrentMinute: string;
+
   /**
    * Stack View: Record has changed
    */
