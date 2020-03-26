@@ -20,16 +20,9 @@ export class ClrTimepickerViewManager {
   constructor(private viewManagerService: ViewManagerService) {}
 
   /**
-   * Returns if the current view is analog.
-   */
-  get isAnalogView(): boolean {
-    return this.viewManagerService.isAnalogView;
-  }
-
-  /**
    * Returns if the current view is digital.
    */
   get isDigitalView(): boolean {
-    return this.viewManagerService.isDigitalView;
+    return this.viewManagerService.isDigitalView();
   }
 }

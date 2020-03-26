@@ -9,11 +9,12 @@ import { TimeModel } from '../model/time.model';
 import { TimeRange } from '../interfaces/time-range.interface';
 import { LocaleHelperService } from './locale-helper.service';
 import { TimeFormattingService } from './time-formatting.service';
-import { DEFAULT_HOUR_STEP, DEFAULT_MINUTE_STEP, MAXIMUM_HOUR_VALUE, MAXIMUM_MINUTE_VALUE } from '../utils/constants';
+import { MAXIMUM_HOUR_VALUE, MAXIMUM_MINUTE_VALUE, TimepickerPeriodEnum } from '../utils/constants';
 
 @Injectable()
 export class TimeIOService {
   // TODO: Implement spacing and separators based on locale
+  // TODO: 12-hour date format
 
   public disabledTimes: TimeRange = {
     // TODO: turn this into an Array of min/max ranges that allow configuration of multiple ranges.
@@ -23,12 +24,10 @@ export class TimeIOService {
 
   private delimiter: string = ':';
   // AM & PM
-  private useDayPeriods: boolean = false;
-  private hourStep: number = DEFAULT_HOUR_STEP;
-  private minuteStep: number = DEFAULT_MINUTE_STEP;
+  // private useDayPeriods: boolean = false;
 
   constructor(private localeHelperService: LocaleHelperService, private formattingService: TimeFormattingService) {
-    this.determineDayPeriodUsage(this.localeHelperService.localeTimeFormat);
+    // this.determineDayPeriodUsage(this.localeHelperService.localeTimeFormat);
   }
 
   // expects a time in a format of either HH:mm or H:mm
@@ -51,24 +50,6 @@ export class TimeIOService {
     }
   }
 
-  // TODO: Min & Max step bounds?
-  public setHourStep(step: number): void {
-    if (!!step) {
-      this.hourStep = step;
-    } else {
-      this.hourStep = DEFAULT_HOUR_STEP;
-    }
-  }
-
-  // TODO: Min & Max step bounds?
-  public setMinuteStep(step: number): void {
-    if (!!step) {
-      this.minuteStep = step;
-    } else {
-      this.minuteStep = DEFAULT_MINUTE_STEP;
-    }
-  }
-
   toLocaleDisplayFormatString(time: Date): string {
     if (time) {
       if (isNaN(time.getTime())) {
@@ -78,6 +59,17 @@ export class TimeIOService {
       return (
         this.formattingService.pad(time.getHours()) + this.delimiter + this.formattingService.pad(time.getMinutes())
       );
+    }
+    return '';
+  }
+
+  toISOFormat(time: Date): string {
+    if (time) {
+      if (isNaN(time.getTime())) {
+        return '';
+      }
+
+      return this.formattingService.pad(time.getHours()) + ':' + this.formattingService.pad(time.getMinutes());
     }
     return '';
   }
@@ -95,13 +87,14 @@ export class TimeIOService {
     const time = new Date();
     time.setHours(hour);
     time.setMinutes(minute);
+    time.setSeconds(0);
     return time;
   }
 
   // TODO: TEST!!!
-  determineDayPeriodUsage(localeFormat: string) {
-    this.useDayPeriods = localeFormat.indexOf('a') >= 0;
-  }
+  // determineDayPeriodUsage(localeFormat: string) {
+  //   this.useDayPeriods = localeFormat.indexOf('a') >= 0;
+  // }
 
   /**
    * Checks if the time is valid depending on the hour and minute provided.
@@ -115,7 +108,13 @@ export class TimeIOService {
       return [defaultHour, defaultMinute];
     }
 
-    const parts: number[] = timeString.split(this.delimiter).map(n => parseInt(n, 10));
+    let parts: number[] = [];
+    if (timeString.indexOf(this.delimiter) >= 0) {
+      parts = timeString.split(this.delimiter).map(n => parseInt(n, 10));
+    } else if (timeString.length === 4) {
+      parts = [+timeString.substring(0, 2), +timeString.substring(2)];
+    }
+
     if (parts.length === 2 && this.isValidTime(parts[0], parts[1])) {
       return [parts[0], parts[1]];
     }

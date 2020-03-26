@@ -25,7 +25,7 @@ import {
   ViewContainerRef,
 } from '@angular/core';
 import { NgControl } from '@angular/forms';
-import { filter, switchMap } from 'rxjs/operators';
+import { filter, switchMap, tap } from 'rxjs/operators';
 import { of } from 'rxjs';
 
 import { FocusService } from '../common/providers/focus.service';
@@ -37,9 +37,9 @@ import { TimeFormControlService } from './providers/time-form-control.service';
 import { TimeIOService } from './providers/time-io.service';
 import { TimepickerEnabledService } from './providers/timepicker-enabled.service';
 import { TimeModel } from './model/time.model';
-import { DatepickerFocusService } from '../datepicker/providers/datepicker-focus.service';
 import { TimeNavigationService } from './providers/time-navigation.service';
-import { TimepickerViewEnum } from './utils/constants';
+import { LocaleHelperService } from './providers/locale-helper.service';
+import { TimeFormattingService } from './providers/time-formatting.service';
 
 // TODO: Seconds? Milliseconds?
 @Directive({
@@ -47,16 +47,21 @@ import { TimepickerViewEnum } from './utils/constants';
   host: {
     '[class.clr-input]': 'true',
   },
-  providers: [],
+  providers: [
+    TimeIOService,
+    LocaleHelperService,
+    TimeFormattingService,
+    TimepickerEnabledService,
+    TimeFormControlService,
+  ],
 })
 export class ClrTimeInput extends WrappedFormControl<ClrTimeContainer> implements OnInit, AfterViewInit, OnDestroy {
   @Input() placeholder: string;
   @Output('clrTimeChange') timeChange: EventEmitter<Date> = new EventEmitter<Date>(false);
   @Input('clrTime')
   set time(time: Date) {
-    // TODO:
     if (this.previousTimeChange !== time) {
-      this.updateTime(this.getValidTimeValue(time));
+      this.updateTime(time);
     }
 
     if (!this.initialClrTimeInputValue) {
@@ -76,17 +81,16 @@ export class ClrTimeInput extends WrappedFormControl<ClrTimeContainer> implement
 
   @Input('clrHourStep')
   set hourStep(step: number) {
-    this.timeIOService.setHourStep(step);
+    if (this.timeNavigationService) {
+      this.timeNavigationService.setHourStep(step);
+    }
   }
 
   @Input('clrMinuteStep')
   set minuteStep(step: number) {
-    this.timeIOService.setMinuteStep(step);
-  }
-
-  @Input('clrView')
-  set view(view: TimepickerViewEnum) {
-    // TODO: set where? maybe belongs onto the container
+    if (this.timeNavigationService) {
+      this.timeNavigationService.setMinuteStep(step);
+    }
   }
 
   protected index = 1;
@@ -102,38 +106,29 @@ export class ClrTimeInput extends WrappedFormControl<ClrTimeContainer> implement
     @Optional()
     protected control: NgControl,
     @Optional() private container: ClrTimeContainer,
-    @Optional() private timeIOService: TimeIOService,
-    @Optional() private timepickerEnabledService: TimepickerEnabledService,
-    @Optional() private timeNavigationService: TimeNavigationService,
+    private timeIOService: TimeIOService,
+    private timepickerEnabledService: TimepickerEnabledService,
+    private timeNavigationService: TimeNavigationService,
     @Optional() private timeFormControlService: TimeFormControlService,
     @Inject(PLATFORM_ID) private platformId: Object,
-    @Optional() private focusService: FocusService,
-    private datepickerFocusService: DatepickerFocusService
+    @Optional() private focusService: FocusService
   ) {
     super(viewContainerRef, ClrTimeContainer, injector, control, renderer, el);
   }
 
   ngOnInit() {
     super.ngOnInit();
-    this.populateServicesFromContainerComponent();
 
     this.subscriptions.push(
-      this.listenForUserSelectedDayChanges(),
+      this.listenForUserTimeChanges(),
       this.listenForControlValueChanges(),
       this.listenForTouchChanges(),
-      this.listenForDirtyChanges(),
-      this.listenForInputRefocus()
+      this.listenForDirtyChanges()
     );
   }
 
+  // See date-input.ts, ngAfterViewInit()
   ngAfterViewInit() {
-    // I don't know why I have to do this but after using the new HostWrapping Module I have to delay the processing
-    // of the initial Input set by the user to here. If I do not 2 issues occur:
-    // 1. The Input setter is called before ngOnInit. ngOnInit initializes the services without which the setter fails.
-    // 2. The Renderer doesn't work before ngAfterViewInit (It used to before the new HostWrapping Module for some reason).
-    // I need the renderer to set the value property on the input to make sure that if the user has supplied a Date
-    // input object, we reflect it with the right date on the input field using the IO service. I am not sure if
-    // these are major issues or not but just noting them down here.
     this.processInitialInputs();
   }
 
@@ -161,12 +156,12 @@ export class ClrTimeInput extends WrappedFormControl<ClrTimeContainer> implement
   @HostListener('change', ['$event.target'])
   onValueChange(target: HTMLInputElement) {
     // TODO: Implement
-    const validDateValue = this.timeIOService.getTimeValueFromTimeString(target.value);
-    if (this.usingClarityTimepicker() && validDateValue) {
-      this.updateTime(validDateValue, true);
+    const validTimeValue = this.timeIOService.getTimeValueFromTimeString(target.value);
+    if (this.usingClarityTimepicker() && validTimeValue) {
+      this.updateTime(validTimeValue, true);
     } else if (this.usingNativeTimepicker()) {
-      const [year, month, day] = target.value.split('-');
-      this.updateTime(new Date(+year, +month - 1, +day), true);
+      const [hour, month, day] = target.value.split('-');
+      this.updateTime(new Date(+hour, +month - 1, +day), true);
     } else {
       this.emitTimeOutput(null);
     }
@@ -200,14 +195,6 @@ export class ClrTimeInput extends WrappedFormControl<ClrTimeContainer> implement
     }
   }
 
-  private populateServicesFromContainerComponent() {
-    if (!this.container) {
-      this.timeIOService = this.getProviderFromContainer(TimeIOService);
-      this.timepickerEnabledService = this.getProviderFromContainer(TimepickerEnabledService);
-      this.timeFormControlService = this.getProviderFromContainer(TimeFormControlService);
-    }
-  }
-
   private processInitialInputs() {
     if (this.timepickerHasFormControl()) {
       this.updateTime(this.timeIOService.getTimeValueFromTimeString(this.control.value));
@@ -217,29 +204,26 @@ export class ClrTimeInput extends WrappedFormControl<ClrTimeContainer> implement
   }
 
   private updateTime(value: Date, setByUserInteraction = false) {
-    const date = this.getValidTimeValue(value);
+    const time = this.getValidTimeValue(value);
 
     if (setByUserInteraction) {
-      this.emitTimeOutput(date);
+      this.emitTimeOutput(time);
     } else {
-      this.previousTimeChange = date;
+      this.previousTimeChange = time;
     }
 
     if (this.timeNavigationService) {
-      this.timeNavigationService.selectedDay = date ? new TimeModel(date.getHours(), date.getMinutes()) : null;
+      this.timeNavigationService.value = time ? new TimeModel(time.getHours(), time.getMinutes()) : null;
     }
 
-    this.updateInput(date);
+    this.updateInput(time);
   }
 
   private updateInput(time: Date) {
-    // TODO: Rewrite from date
     if (time) {
       const timeString = this.timeIOService.toLocaleDisplayFormatString(time);
       if (this.usingNativeTimepicker()) {
-        // valueAsDate expects UTC, date from input is time-zoned
-        time.setMinutes(time.getMinutes() - time.getTimezoneOffset());
-        this.renderer.setProperty(this.el.nativeElement, 'valueAsDate', time);
+        this.renderer.setProperty(this.el.nativeElement, 'value', this.timeIOService.toISOFormat(time));
       } else if (this.timepickerHasFormControl() && timeString !== this.control.value) {
         this.control.control.setValue(timeString);
       } else {
@@ -279,14 +263,14 @@ export class ClrTimeInput extends WrappedFormControl<ClrTimeContainer> implement
         filter(hasControl => hasControl),
         switchMap(() => this.control.valueChanges),
         // only update date value if not being set by user
-        filter(() => !this.datepickerFocusService.elementIsFocused(this.el.nativeElement))
+        // filter(() => !this.datepickerFocusService.elementIsFocused(this.el.nativeElement))
+        tap(() => console.log('loop'))
       )
       .subscribe((value: string) => this.updateTime(this.timeIOService.getTimeValueFromTimeString(value)));
   }
 
-  // TODO: Maybe remove
-  private listenForUserSelectedDayChanges() {
-    return this.timeNavigationService.selectedDayChange.subscribe(dayModel => this.updateTime(dayModel.toDate(), true));
+  private listenForUserTimeChanges() {
+    return this.timeNavigationService.valueChanged().subscribe(timeModel => this.updateTime(timeModel.toDate(), true));
   }
 
   private listenForTouchChanges() {
@@ -299,11 +283,5 @@ export class ClrTimeInput extends WrappedFormControl<ClrTimeContainer> implement
     return this.timeFormControlService.dirtyChange
       .pipe(filter(() => this.timepickerHasFormControl()))
       .subscribe(() => this.control.control.markAsDirty());
-  }
-
-  private listenForInputRefocus() {
-    return this.timeNavigationService.selectedDayChange
-      .pipe(filter(date => !!date))
-      .subscribe(v => this.datepickerFocusService.focusInput(this.el.nativeElement));
   }
 }

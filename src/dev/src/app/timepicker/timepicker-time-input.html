@@ -1,0 +1,52 @@
+<!--
+  ~ Copyright (c) 2016-2020 VMware, Inc. All Rights Reserved.
+  ~ This software is released under MIT license.
+  ~ The full license information can be found in LICENSE in the root directory of this project.
+  -->
+
+<div clrForm>
+    <h6>[(clrTime)]</h6>
+    <p></p>
+    <input type="time" [(clrTime)]="time" clrHourStep="2">
+</div>
+<div class="clr-row">
+    <div class="clr-col-12 clr-col-md-10 clr-col-lg-5">
+        <table class="table">
+            <thead>
+            <tr>
+                <th>[(clrTime)]</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>{{time}}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<div>
+    <button class="btn" (click)="updateTime()">Update Time</button>
+</div>
+
+<div clrForm>
+    <h6>clrTimeChange</h6>
+    <p></p>
+    <input type="time" clrTime (clrTimeChange)="timeChanged($event)">
+</div>
+<div class="clr-row" style="margin-bottom: 400px">
+    <div class="clr-col-12 clr-col-md-10 clr-col-lg-5">
+        <table class="table">
+            <thead>
+            <tr>
+                <th>(clrTimeChange)</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>{{timeStr}}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

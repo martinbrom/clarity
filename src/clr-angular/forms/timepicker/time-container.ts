@@ -3,7 +3,7 @@
  * This software is released under MIT license.
  * The full license information can be found in LICENSE in the root directory of this project.
  */
-import { Component, Optional, ContentChild, Input, ElementRef, ViewChild, OnDestroy } from '@angular/core';
+import { Component, Optional, ContentChild, Input, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { NgControl } from '@angular/forms';
 
@@ -25,6 +25,7 @@ import { ViewManagerService } from '../timepicker/providers/view-manager.service
 import { TimeFormControlService } from './providers/time-form-control.service';
 import { TimepickerEnabledService } from './providers/timepicker-enabled.service';
 import { ClrPopoverPosition } from '../../utils/popover/interfaces/popover-position.interface';
+import { TimepickerViewEnum } from './utils/constants';
 import { TimeNavigationService } from './providers/time-navigation.service';
 
 @Component({
@@ -34,20 +35,10 @@ import { TimeNavigationService } from './providers/time-navigation.service';
       <label *ngIf="!label && addGrid()"></label>
       <div class="clr-control-container" [ngClass]="controlClass()">
         <div class="clr-input-wrapper" clrPopoverAnchor>
-          <div class="clr-input-group" [class.clr-focus]="focus">
+          <div class="clr-input-group" clrPopoverOpenCloseButton [class.clr-focus]="focus">
             <ng-content select="[clrTime]"></ng-content>
-<!--            <button #actionButton-->
-<!--                    type="button"-->
-<!--                    clrPopoverOpenCloseButton-->
-<!--                    class="clr-input-group-icon-action"-->
-<!--                    [attr.title]="commonStrings.keys.timepickerToggle"-->
-<!--                    [attr.aria-label]="commonStrings.keys.timepickerToggle"-->
-<!--                    [disabled]="isInputTimeDisabled"-->
-<!--                    *ngIf="isEnabled">-->
-<!--              <clr-icon shape="calendar"></clr-icon>-->
-<!--            </button>-->
-            <clr-timepicker-view-manager *clrPopoverContent="open at popoverPosition; outsideClickToClose: true; scrollToClose: true" clrFocusTrap></clr-timepicker-view-manager>
           </div>
+          <clr-timepicker-view-manager *clrPopoverContent="open at popoverPosition; outsideClickToClose: true; scrollToClose: true" clrFocusTrap></clr-timepicker-view-manager>
           <clr-icon class="clr-validate-icon" shape="exclamation-circle"></clr-icon>
         </div>
         <ng-content select="clr-control-helper" *ngIf="!invalid"></ng-content>
@@ -63,6 +54,9 @@ import { TimeNavigationService } from './providers/time-navigation.service';
     ControlClassService,
     FocusService,
     NgControlService,
+    TimepickerEnabledService,
+    TimeFormControlService,
+    ViewManagerService,
   ],
   host: {
     '[class.clr-form-control-disabled]': 'isInputTimeDisabled',
@@ -70,7 +64,7 @@ import { TimeNavigationService } from './providers/time-navigation.service';
     '[class.clr-row]': 'addGrid()',
   },
 })
-export class ClrTimeContainer implements DynamicWrapper, OnDestroy {
+export class ClrTimeContainer implements DynamicWrapper, OnInit, OnDestroy {
   _dynamic: boolean;
   invalid = false;
   focus = false;
@@ -88,14 +82,13 @@ export class ClrTimeContainer implements DynamicWrapper, OnDestroy {
     return this.viewManagerService.position;
   }
 
-  public get open() {
-    return this.toggleService.open;
+  @Input('clrView')
+  set view(view: TimepickerViewEnum) {
+    this.viewManagerService.currentView = view;
   }
 
-  private toggleButton: ElementRef;
-  @ViewChild('actionButton')
-  set actionButton(button: ElementRef) {
-    this.toggleButton = button;
+  public get open() {
+    return this.toggleService.open;
   }
 
   private subscriptions: Subscription[] = [];
@@ -103,7 +96,6 @@ export class ClrTimeContainer implements DynamicWrapper, OnDestroy {
   constructor(
     private toggleService: ClrPopoverToggleService,
     private timepickerEnabledService: TimepickerEnabledService,
-    private timeNavigationService: TimeNavigationService,
     private timeFormControlService: TimeFormControlService,
     public commonStrings: ClrCommonStringsService,
     private ifErrorService: IfErrorService,
@@ -122,6 +114,14 @@ export class ClrTimeContainer implements DynamicWrapper, OnDestroy {
       }),
       this.toggleService.openChange.subscribe(state => {
         this.timeFormControlService.markAsTouched();
+      })
+    );
+  }
+
+  ngOnInit() {
+    this.subscriptions.push(
+      this.ifErrorService.statusChanges.subscribe(invalid => {
+        this.invalid = invalid;
       })
     );
   }

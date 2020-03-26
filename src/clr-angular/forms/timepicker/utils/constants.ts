@@ -17,6 +17,17 @@ export const DEFAULT_MINUTE_STEP = 1;
 // export const MAXIMUM_MINUTE_STEP = 60;
 
 export const enum TimepickerViewEnum {
-  ANALOGVIEW = 'ANALOGVIEW',
+  // ANALOGVIEW = 'ANALOGVIEW',
   DIGITALVIEW = 'DIGITALVIEW',
+}
+
+// TODO: Naming
+export const enum TimepickerTypeEnum {
+  FULL = 'FULL',
+  TWELVEHOURS = 'TWELVEHOURS',
+}
+
+export const enum TimepickerPeriodEnum {
+  AM = 'AM',
+  PM = 'PM',
 }

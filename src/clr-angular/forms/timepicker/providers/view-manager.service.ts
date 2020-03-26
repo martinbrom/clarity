@@ -7,7 +7,7 @@
 import { Injectable } from '@angular/core';
 import { ClrPopoverPositions } from '../../../utils/popover/enums/positions.enum';
 import { ClrPopoverPosition } from '../../../utils/popover/interfaces/popover-position.interface';
-import { TimepickerViewEnum } from '../utils/constants';
+import { TimepickerTypeEnum, TimepickerViewEnum } from '../utils/constants';
 
 /**
  * This service manages which view is visible in the datepicker popover.
@@ -15,21 +15,42 @@ import { TimepickerViewEnum } from '../utils/constants';
 @Injectable()
 export class ViewManagerService {
   private _currentView: TimepickerViewEnum = TimepickerViewEnum.DIGITALVIEW;
+  private _currentType: TimepickerTypeEnum = TimepickerTypeEnum.FULL;
   position: ClrPopoverPosition = ClrPopoverPositions['bottom-left'];
 
-  get isDigitalView(): boolean {
+  isDigitalView(): boolean {
     return this._currentView === TimepickerViewEnum.DIGITALVIEW;
   }
 
-  get isAnalogView(): boolean {
-    return this._currentView === TimepickerViewEnum.ANALOGVIEW;
+  set currentView(view: TimepickerViewEnum) {
+    if (view !== this._currentView) {
+      this._currentView = view;
+    }
   }
 
   changeToDigitalView(): void {
     this._currentView = TimepickerViewEnum.DIGITALVIEW;
   }
 
-  changeToAnalogView(): void {
-    this._currentView = TimepickerViewEnum.ANALOGVIEW;
+  isFullType(): boolean {
+    return this._currentView === TimepickerViewEnum.DIGITALVIEW && this._currentType === TimepickerTypeEnum.FULL;
+  }
+
+  isTwelveHourType(): boolean {
+    return this._currentType === TimepickerTypeEnum.TWELVEHOURS;
+  }
+
+  set currentType(type: TimepickerTypeEnum) {
+    if (type !== this._currentType) {
+      this._currentType = type;
+    }
+  }
+
+  changeToFullType(): void {
+    this._currentType = TimepickerTypeEnum.FULL;
+  }
+
+  changeToTwelveHourType(): void {
+    this._currentType = TimepickerTypeEnum.TWELVEHOURS;
   }
 }

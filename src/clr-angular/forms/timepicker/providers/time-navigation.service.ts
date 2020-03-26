@@ -5,62 +5,66 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { TimeModel } from '../model/time.model';
+import { DEFAULT_HOUR_STEP, DEFAULT_MINUTE_STEP } from '../utils/constants';
 
-/**
- * This service is responsible for:
- * 1. Initializing the displayed timepicker dialog.
- * 2. Moving the calendar to the next, previous or current hours and minutes
- * 3. Managing the focused and selected time models.
- */
 @Injectable()
 export class TimeNavigationService {
-  /**
-   * Variable to store today's date.
-   */
-  private _timeNow: Date = new Date();
-  private _nowModel: TimeModel;
+  private _value: TimeModel;
+  private _valueChanged = new Subject<TimeModel>();
 
-  private initializeTodaysDate(): void {
-    this._timeNow = new Date();
-    this._nowModel = new TimeModel(this._timeNow.getFullYear(), this._timeNow.getMonth());
-  }
+  private hourStep = DEFAULT_HOUR_STEP;
+  private minuteStep = DEFAULT_MINUTE_STEP;
 
-  get nowModel(): TimeModel {
-    return this._nowModel;
-  }
-
-  public selectedDay: TimeModel;
-
-  private _selectedDayChange: Subject<TimeModel> = new Subject<TimeModel>();
-
-  get selectedDayChange(): Observable<TimeModel> {
-    return this._selectedDayChange.asObservable();
-  }
-
-  /**
-   * Notifies that the selected day has changed so that the date can be emitted to the user.
-   * Note: Only to be called from day.ts
-   */
-  notifySelectedDayChanged(dayModel: TimeModel) {
-    this.selectedDay = dayModel;
-    this._selectedDayChange.next(dayModel);
-  }
-
-  public focusedDay: TimeModel;
-
-  /**
-   * Initializes the calendar based on the selected day.
-   */
-  initializeCalendar(): void {
-    this.focusedDay = null; // Can be removed later on the store focus
-    this.initializeTodaysDate();
-    if (this.selectedDay) {
-      this._displayedCalendar = new CalendarModel(this.selectedDay.year, this.selectedDay.month);
+  // TODO: Min & Max step bounds?
+  public setHourStep(step: number): void {
+    if (!!step) {
+      this.hourStep = step;
     } else {
-      this._displayedCalendar = new CalendarModel(this.nowModel.year, this.nowModel.month);
+      this.hourStep = DEFAULT_HOUR_STEP;
     }
+  }
+
+  // TODO: Min & Max step bounds?
+  public setMinuteStep(step: number): void {
+    if (!!step) {
+      this.minuteStep = step;
+    } else {
+      this.minuteStep = DEFAULT_MINUTE_STEP;
+    }
+  }
+
+  get value() {
+    return this._value;
+  }
+
+  set value(time: TimeModel) {
+    this._value = time;
+  }
+
+  public notifyValueChange(time: TimeModel) {
+    this._value = time;
+    this._valueChanged.next(time);
+  }
+
+  public valueChanged(): Observable<TimeModel> {
+    return this._valueChanged.asObservable();
+  }
+
+  public incrementHours(): void {
+    this.notifyValueChange(this.value.incrementHoursBy(this.hourStep));
+  }
+
+  public decrementHours(): void {
+    this.notifyValueChange(this.value.incrementHoursBy(-this.hourStep));
+  }
+
+  public incrementMinutes(): void {
+    this.notifyValueChange(this.value.incrementMinutesBy(this.minuteStep));
+  }
+
+  public decrementMinutes(): void {
+    this.notifyValueChange(this.value.incrementMinutesBy(-this.minuteStep));
   }
 }

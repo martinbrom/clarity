@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2019 VMware, Inc. All Rights Reserved.
+ * Copyright (c) 2016-2020 VMware, Inc. All Rights Reserved.
  * This software is released under MIT license.
  * The full license information can be found in LICENSE in the root directory of this project.
  */
@@ -115,6 +115,10 @@ export const APP_ROUTES: Routes = [
   {
     path: 'timeline',
     loadChildren: () => import('./timeline/timeline.demo.module').then(m => m.TimelineDemoModule),
+  },
+  {
+    path: 'timepicker',
+    loadChildren: () => import('./timepicker/timepicker.demo.module').then(m => m.TimepickerDemoModule),
   },
   { path: 'toggles', loadChildren: () => import('./toggles/toggles.demo.module').then(m => m.TogglesDemoModule) },
   {
